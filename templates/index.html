@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerador de Contrato - Bevilacqua</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { color: #911419; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px;}
+        .section-title { margin-top: 25px; color: #333; font-size: 1.1em; font-weight: bold; border-left: 4px solid #911419; padding-left: 10px;}
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 500; color: #555; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .row { display: flex; gap: 10px; }
+        .row .form-group { flex: 1; }
+        button { width: 100%; padding: 12px; background-color: #911419; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px;}
+        button:hover { background-color: #7a1115; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Emissão de Contrato</h2>
+        <form action="/gerar" method="POST">
+            
+            <div class="section-title">Dados do Cliente</div>
+            <div class="form-group">
+                <label>Nome Completo</label>
+                <input type="text" name="nome_cliente" required placeholder="Ex: João da Silva">
+            </div>
+            <div class="form-group">
+                <label>CPF</label>
+                <input type="text" name="cpf" required placeholder="Ex: 123.456.789-00">
+            </div>
+
+            <div class="section-title">Dados da Obra</div>
+            <div class="row">
+                <div class="form-group">
+                    <label>Metragem (m²)</label>
+                    <input type="text" name="metragem" required placeholder="Ex: 200 ou 200,5">
+                </div>
+                <div class="form-group">
+                    <label>Valor M² (R$)</label>
+                    <input type="text" name="valor_m2" required placeholder="Ex: 80,00">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="form-group">
+                    <label>Cidade - SP</label>
+                    <input type="text" name="cidade" required placeholder="Ex: São José dos Campos">
+                </div>
+                <div class="form-group">
+                    <label>Nome do Condomínio</label>
+                    <input type="text" name="condominio" required placeholder="Ex: Residencial Alphaville">
+                </div>
+            </div>
+
+            <div class="section-title">Data de Emissão</div>
+            <div class="row">
+                <div class="form-group">
+                    <label>Dia</label>
+                    <input type="text" name="data_dia" required placeholder="Ex: 19">
+                </div>
+                <div class="form-group">
+                    <label>Mês (Extenso)</label>
+                    <input type="text" name="data_mes" required placeholder="Ex: maio">
+                </div>
+                <div class="form-group">
+                    <label>Ano</label>
+                    <input type="text" name="data_ano" required placeholder="Ex: 2025">
+                </div>
+            </div>
+
+            <button type="submit">Gerar PDF Inteligente</button>
+        </form>
+    </div>
+</body>
+</html>
