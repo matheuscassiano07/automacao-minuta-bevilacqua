@@ -1,7 +1,8 @@
 from flask import Flask, request, render_template, send_file
 import os
 import subprocess
-from num2words import num2words # Biblioteca nova para escrever por extenso!
+import re  # Importação necessária para limpar as tags
+from num2words import num2words 
 
 app = Flask(__name__)
 
@@ -14,6 +15,11 @@ def gerar_extenso(valor_float):
     """Gera o texto (ex: dezesseis mil) e retira a palavra 'reais' para encaixar no LaTeX"""
     extenso = num2words(valor_float, lang='pt_BR', to='currency')
     return extenso.replace(' reais', '').replace(' real', '').replace(' centavos', '')
+
+def limpar_citacoes(texto_latex):
+    """Varre o LaTeX e apaga todas as tags que o usuário esqueceu de tirar"""
+    # Regex que encontra [cite: 1] ou [cite: 1, 2, 3] e apaga
+    return re.sub(r'\[cite:[^\]]+\]', '', texto_latex)
 
 @app.route('/')
 def index():
@@ -32,15 +38,12 @@ def gerar_contrato():
         data_ano = request.form.get('data_ano')
 
         # 2. LÓGICA MATEMÁTICA
-        # Converte as vírgulas da metragem e valor para ponto (para o Python conseguir calcular)
         metragem_str = request.form.get('metragem').replace(',', '.')
         valor_m2_str = request.form.get('valor_m2').replace(',', '.')
         
-        # Transforma o texto em número com casas decimais (float)
         metragem_num = float(metragem_str)
         valor_m2_num = float(valor_m2_str)
 
-        # O Computador faz as contas para você!
         valor_total_num = metragem_num * valor_m2_num
         valor_parcela_num = valor_total_num * 0.20 # Calcula 20%
 
@@ -48,7 +51,7 @@ def gerar_contrato():
         dados = {
             '[[NOMECLIENTE]]': nome_cliente,
             '[[CPF]]': cpf,
-            '[[METRAGEM]]': request.form.get('metragem'), # Mostra como digitou
+            '[[METRAGEM]]': request.form.get('metragem'), 
             '[[CIDADE]]': cidade,
             '[[CONDOMINIO]]': condominio,
             '[[VALORM2]]': formatar_moeda(valor_m2_num),
@@ -62,25 +65,30 @@ def gerar_contrato():
             '[[DATAANO]]': data_ano
         }
 
-        # 4. Ler o modelo e substituir as tags
+        # 4. Ler o modelo e processar
         with open('contrato_template.tex', 'r', encoding='utf-8') as file:
-            template = file.read()
+            conteudo_contrato = file.read()
+
+        # A MÁGICA DE LIMPEZA ACONTECE AQUI:
+        conteudo_contrato = limpar_citacoes(conteudo_contrato)
 
         for tag, valor in dados.items():
             if valor:
-                template = template.replace(tag, str(valor))
+                # Converte para string e protege caracteres especiais (%, $)
+                valor_seguro = str(valor).replace('%', '\\%').replace('$', '\\$')
+                conteudo_contrato = conteudo_contrato.replace(tag, valor_seguro)
 
         # 5. Salvar e compilar o PDF
         nome_tex = 'temp_contrato.tex'
         nome_pdf = 'temp_contrato.pdf'
         
         with open(nome_tex, 'w', encoding='utf-8') as file:
-            file.write(template)
+            file.write(conteudo_contrato)
 
         subprocess.run(['pdflatex', '-interaction=nonstopmode', nome_tex], check=True, stdout=subprocess.DEVNULL)
         
-        # 6. Retornar PDF (O erro foi corrigido nesta linha, usando a chave certa)
-        nome_download = f"Contrato_{dados['[[NOMECLIENTE]]']}.pdf"
+        # 6. Retornar PDF 
+        nome_download = f"Contrato_{nome_cliente}.pdf"
         return send_file(nome_pdf, as_attachment=True, download_name=nome_download)
         
     except subprocess.CalledProcessError:
@@ -88,7 +96,6 @@ def gerar_contrato():
     except ValueError:
         return "Erro de digitação: Certifique-se de digitar apenas números (ex: 80,00) nos campos de Metragem e Valor M²."
     except Exception as e:
-        # Se ocorrer algum outro erro inesperado, ele aparecerá aqui
         return f"Ocorreu um erro inesperado: {str(e)}"
     finally:
         # Limpa o lixo que o LaTeX gera
