@@ -13,8 +13,13 @@
         input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         .row { display: flex; gap: 10px; }
         .row .form-group { flex: 1; }
-        button { width: 100%; padding: 12px; background-color: #911419; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px;}
+        .actions { display: none; gap: 10px; margin-top: 20px; }
+        .actions.visible { display: grid; }
+        button { width: 100%; padding: 12px; background-color: #911419; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer;}
         button:hover { background-color: #7a1115; }
+        .secondary { background-color: #333; }
+        .secondary:hover { background-color: #222; }
+        .hint { margin-top: 12px; color: #666; font-size: 13px; text-align: center; }
     </style>
 </head>
 <body>
@@ -29,18 +34,18 @@
             </div>
             <div class="form-group">
                 <label>CPF</label>
-                <input type="text" name="cpf" required placeholder="Ex: 123.456.789-00">
+                <input type="text" name="cpf" required placeholder="Ex: 123.456.789-00" maxlength="14" inputmode="numeric">
             </div>
 
             <div class="section-title">Dados da Obra</div>
             <div class="row">
                 <div class="form-group">
                     <label>Metragem (m²)</label>
-                    <input type="text" name="metragem" required placeholder="Ex: 200 ou 200,5">
+                    <input type="text" name="metragem" required placeholder="Ex: 200 ou 200,5" inputmode="decimal">
                 </div>
                 <div class="form-group">
                     <label>Valor M² (R$)</label>
-                    <input type="text" name="valor_m2" required placeholder="Ex: 80,00">
+                    <input type="text" name="valor_m2" required placeholder="Ex: 80,00" inputmode="decimal">
                 </div>
             </div>
             
@@ -59,7 +64,7 @@
             <div class="row">
                 <div class="form-group">
                     <label>Dia</label>
-                    <input type="text" name="data_dia" required placeholder="Ex: 19">
+                    <input type="text" name="data_dia" required placeholder="Ex: 19" maxlength="2" inputmode="numeric">
                 </div>
                 <div class="form-group">
                     <label>Mês (Extenso)</label>
@@ -67,12 +72,112 @@
                 </div>
                 <div class="form-group">
                     <label>Ano</label>
-                    <input type="text" name="data_ano" required placeholder="Ex: 2025">
+                    <input type="text" name="data_ano" required placeholder="Ex: 2025" maxlength="4" inputmode="numeric">
                 </div>
             </div>
 
-            <button type="submit">Gerar PDF Inteligente</button>
+            <div id="actions" class="actions">
+                <button
+                    type="submit"
+                    formaction="/minuta"
+                    formtarget="_blank"
+                >
+                    Ver Minuta
+                </button>
+                <button
+                    type="submit"
+                    class="secondary"
+                    formaction="/proposta"
+                    formtarget="_blank"
+                >
+                    Ver Proposta de Apresentação
+                </button>
+            </div>
+            <p id="hint" class="hint">Preencha todos os campos para liberar as opções.</p>
         </form>
     </div>
+    <script>
+        const form = document.querySelector("form");
+        const actions = document.getElementById("actions");
+        const hint = document.getElementById("hint");
+        const fields = Array.from(form.querySelectorAll("input[required]"));
+        const cpfInput = form.querySelector("input[name='cpf']");
+        const metragemInput = form.querySelector("input[name='metragem']");
+        const valorM2Input = form.querySelector("input[name='valor_m2']");
+        const diaInput = form.querySelector("input[name='data_dia']");
+        const anoInput = form.querySelector("input[name='data_ano']");
+
+        function isFilled(value) {
+            return String(value || "").trim().length > 0;
+        }
+
+        function onlyDigits(value) {
+            return String(value || "").replace(/\D/g, "");
+        }
+
+        function applyCpfMask(value) {
+            const digits = onlyDigits(value).slice(0, 11);
+            const parts = [];
+            if (digits.length > 0) parts.push(digits.slice(0, 3));
+            if (digits.length > 3) parts.push(digits.slice(3, 6));
+            if (digits.length > 6) parts.push(digits.slice(6, 9));
+            let formatted = parts.join(".");
+            if (digits.length > 9) {
+                formatted += "-" + digits.slice(9, 11);
+            }
+            return formatted;
+        }
+
+        function applyDecimalMask(value) {
+            let text = String(value || "");
+            text = text.replace(/[^\d,.\s]/g, "");
+            text = text.replace(/\./g, ",");
+            text = text.replace(/\s+/g, "");
+            const firstComma = text.indexOf(",");
+            if (firstComma >= 0) {
+                const intPart = text.slice(0, firstComma).replace(/,/g, "");
+                const decPart = text.slice(firstComma + 1).replace(/,/g, "");
+                text = intPart + "," + decPart;
+            } else {
+                text = text.replace(/,/g, "");
+            }
+            return text;
+        }
+
+        function updateActionsVisibility() {
+            const complete = fields.every((field) => isFilled(field.value));
+            actions.classList.toggle("visible", complete);
+            hint.style.display = complete ? "none" : "block";
+        }
+
+        cpfInput.addEventListener("input", () => {
+            cpfInput.value = applyCpfMask(cpfInput.value);
+            updateActionsVisibility();
+        });
+
+        [metragemInput, valorM2Input].forEach((input) => {
+            input.addEventListener("input", () => {
+                input.value = applyDecimalMask(input.value);
+                updateActionsVisibility();
+            });
+        });
+
+        diaInput.addEventListener("input", () => {
+            diaInput.value = onlyDigits(diaInput.value).slice(0, 2);
+            updateActionsVisibility();
+        });
+
+        anoInput.addEventListener("input", () => {
+            anoInput.value = onlyDigits(anoInput.value).slice(0, 4);
+            updateActionsVisibility();
+        });
+
+        fields.forEach((field) => {
+            field.addEventListener("input", updateActionsVisibility);
+            field.addEventListener("change", updateActionsVisibility);
+        });
+
+        updateActionsVisibility();
+    </script>
 </body>
 </html>
